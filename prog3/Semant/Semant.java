@@ -83,15 +83,14 @@ public class Semant
       {
         ARRAY array = (ARRAY)actual;
         if (!init.ty.coerceTo(array.element))
-          error(e.init.pos, "element type mismatch");
+          error(e.init.pos, "Element Type Mismatch");
         return new ExpTy(null, name);
       }
       error(e.pos, "Not of Type Array");
     }
     else
-    {
-      error(e.pos, "undefined type: " + e.typ);
-    } return new ExpTy(null, VOID);
+    { error(e.pos, "Undefined Type: " + e.typ); } 
+	return new ExpTy(null, VOID);
   }
 
   ExpTy transExp(AssignExp e)
@@ -99,13 +98,13 @@ public class Semant
     ExpTy var = transVar(e.var, true);
     ExpTy exp = transExp(e.exp);
     if (!exp.ty.coerceTo(var.ty))
-      error(e.pos, "assignment type mismatch");
+      error(e.pos, "Assignment Type Mismatch");
     return new ExpTy(null, VOID);
   }
 
   ExpTy transExp(BreakExp e)
   {
-    error(e.pos, "break must be loop");
+    error(e.pos, "Break Must Be Contained in Loop");
     return new ExpTy(null, VOID);
   }
 
@@ -118,18 +117,18 @@ public class Semant
       transArgs(e.pos, f.formals, e.args);
       return new ExpTy(null, f.result);
     }
-    error(e.pos, "undefined function: " + e.func);
+    error(e.pos, "Undefined Function: " + e.func);
     return new ExpTy(null, VOID);
   }
 
   ExpTy transExp(ForExp e)
   {
     ExpTy lo = transExp(e.var.init);
-    checkInt(lo, e.var.pos);
     ExpTy hi = transExp(e.hi);
+	checkInt(lo, e.var.pos);
     checkInt(hi, e.hi.pos);
 
-    //Begin scope
+    //Begin Scope
     this.env.venv.beginScope();
     e.var.entry = new LoopVarEntry(INT);
     this.env.venv.put(e.var.name, e.var.entry);
@@ -137,11 +136,11 @@ public class Semant
     Semant loop = new LoopSemant(this.env);
     ExpTy body = loop.transExp(e.body);
 
-    //End scope
+    //End Scope
     this.env.venv.endScope();
     
     if (!body.ty.coerceTo(VOID))
-      error(e.body.pos, "result type mismatch");
+      error(e.body.pos, "Result Type Mismatch");
     return new ExpTy(null, VOID);
   }
 
@@ -153,7 +152,7 @@ public class Semant
     ExpTy elseclause = transExp(e.elseclause);
     
     if ((!thenclause.ty.coerceTo(elseclause.ty)) && (!elseclause.ty.coerceTo(thenclause.ty)))
-      error(e.pos, "result type mismatch");
+      error(e.pos, "Result Type Mismatch");
     return new ExpTy(null, elseclause.ty);
   }
 
@@ -199,7 +198,7 @@ public class Semant
         checkComparable(left, e.left.pos);
         checkComparable(right, e.right.pos);
         if ((!left.ty.coerceTo(right.ty)) && (!right.ty.coerceTo(left.ty)))
-          error(e.pos, "Operands are incompatible");
+          error(e.pos, "Operands Are Incompatible");
         return new ExpTy(null, INT);
       case OpExp.LT:
       case OpExp.LE:
@@ -208,10 +207,10 @@ public class Semant
         checkOrderable(left, e.left.pos);
         checkOrderable(right, e.right.pos);
         if ((!left.ty.coerceTo(right.ty)) && (!right.ty.coerceTo(left.ty)))
-          error(e.pos, "Operands are incompatible");
+          error(e.pos, "Operands Are Incompatible");
         return new ExpTy(null, INT);
     }
-    throw new Error("operator unknown");
+    throw new Error("Operator Unknown");
   }
 
   ExpTy transExp(RecordExp e)
@@ -226,10 +225,10 @@ public class Semant
         transFields(e.pos, r, e.fields);
         return new ExpTy(null, name);
       }
-      error(e.pos, "Not of type record");
+      error(e.pos, "Not of Type Record");
     }
     else
-    { error(e.pos, "undefined type: " + e.typ); }
+    { error(e.pos, "Undefined Type: " + e.typ); }
     return new ExpTy(null, VOID);
   }
 
@@ -259,7 +258,7 @@ public class Semant
     ExpTy body = loop.transExp(e.body);
     
     if (!body.ty.coerceTo(VOID))
-      error(e.body.pos, "result type mismatch");
+      error(e.body.pos, "Result Type Mismatch");
     return new ExpTy(null, VOID);
   }
 
@@ -280,10 +279,11 @@ public class Semant
   Translate.Exp transDec(FunctionDec d)
   {
     Hashtable hash = new Hashtable();
+	//First Pass
     for (FunctionDec func = d; func != null; func = func.next)
     {
       if (hash.put(func.name, func.name) != null)
-        error(func.pos, "redeclared function");
+        error(func.pos, "Redeclared Function");
       RECORD fields = transTypeFields(new Hashtable(), func.params);
       Type type = transTy(func.result);
       // Add function to env
@@ -291,6 +291,7 @@ public class Semant
       this.env.venv.put(func.name, func.entry);
     }
 
+	//Second Pass
     for (FunctionDec f = d; f != null; f = f.next)
     {
       //Begin scope
@@ -300,7 +301,8 @@ public class Semant
       ExpTy body = fun.transExp(f.body);
       
       if (!body.ty.coerceTo(f.entry.result))
-        error(f.body.pos, "result type mismatch");
+        error(f.body.pos, "Result Type Mismatch");
+	  //End scope
       this.env.venv.endScope();
     }
     return null;
@@ -313,7 +315,7 @@ public class Semant
     for (TypeDec type = d; type != null; type = type.next)
     {
       if (hash.put(type.name, type.name) != null)
-        error(type.pos, "redeclared type");
+        error(type.pos, "Redeclared Type");
       type.entry = new NAME(type.name);
       this.env.tenv.put(type.name, type.entry);
     }
@@ -328,7 +330,7 @@ public class Semant
     {
       NAME name = type.entry;
       if (name.isLoop())
-        error(type.pos, "illegal type cycle");
+        error(type.pos, "Illegal Type Cycle");
     }
     return null;
   }
@@ -341,7 +343,7 @@ public class Semant
     if (d.typ == null)
     {
       if (init.ty.coerceTo(NIL))
-        error(d.pos, "record type expected");
+        error(d.pos, "Record Type Expected");
         // If the type is not explicit, just use the initial value's type
       type = init.ty;
     }
@@ -350,7 +352,7 @@ public class Semant
         // If the type is explicit, translate the type and check that it is compatible
       type = transTy(d.typ);
       if (!init.ty.coerceTo(type))
-        error(d.pos, "assignment type mismatch");
+        error(d.pos, "Assignment Type Mismatch");
     }
     // Add the variable to the variable environment
     d.entry = new VarEntry(type);
@@ -376,7 +378,7 @@ public class Semant
     NAME name = (NAME)this.env.tenv.get(t.typ);
     if (name != null)
       return new ARRAY(name);
-    error(t.pos, "undefined type: " + t.typ);
+    error(t.pos, "Undefined Type: " + t.typ);
     return VOID;
   }
 
@@ -387,7 +389,7 @@ public class Semant
     NAME name = (NAME)this.env.tenv.get(t.name);
     if (name != null)
       return name;
-    error(t.pos, "undefined type: " + t.name);
+    error(t.pos, "Undefined Type: " + t.name);
     return VOID;
   }
 
@@ -400,6 +402,9 @@ public class Semant
   }
 
   // HANDLE VARIABLES
+  
+  ExpTy transVar(Var v)
+  { return transVar(v, false); }
 
   ExpTy transVar(Var v, boolean lhs)
   {
@@ -423,9 +428,9 @@ public class Semant
         if (field.fieldName == v.field)
           return new ExpTy(null, field.fieldType);
       }
-      error(v.pos, "undefined field: " + v.field);
+      error(v.pos, "Undefined Field: " + v.field);
     }
-    else { error(v.var.pos, "record expected"); }
+    else { error(v.var.pos, "Record Expected"); }
     
     return new ExpTy(null, VOID);
   }
@@ -437,11 +442,11 @@ public class Semant
     {
       VarEntry ent = (VarEntry)entry;
       if ((lhs) && ((ent instanceof LoopVarEntry)))
-        error(v.pos, "assignment to loop index");
+        error(v.pos, "Assignment To Loop Index");
       return new ExpTy(null, ent.ty);
     }
     
-    error(v.pos, "undefined variable: " + v.name);
+    error(v.pos, "Undefined Variable: " + v.name);
     return new ExpTy(null, VOID);
   }
 
@@ -459,14 +464,10 @@ public class Semant
       return new ExpTy(null, array.element);
     }
     
-    error(v.var.pos, "array expected");
+    error(v.var.pos, "Array Expected");
     return new ExpTy(null, VOID);
   }
-
-  ExpTy transVar(Var v)
-  { return transVar(v, false); }
-
-
+  
   // Helper Methods
 
   private Translate.Exp checkComparable(ExpTy et, int pos)
@@ -477,14 +478,14 @@ public class Semant
       && (!(actualType instanceof NIL)) 
       && (!(actualType instanceof RECORD)) 
       && (!(actualType instanceof ARRAY)))
-      error(pos, "integer, string, nil, record, or array expected");
+      error(pos, "Integer, String, nil, Record, or Array Expected");
     return et.exp;
   }
 
   private Translate.Exp checkInt(ExpTy et, int pos)
   {
     if (!INT.coerceTo(et.ty))
-      error(pos, "expected integer");
+      error(pos, "Expected Integer");
     return et.exp;
   }
 
@@ -492,7 +493,7 @@ public class Semant
   {
     Type actualType = et.ty.actual();
     if ((!(actualType instanceof INT)) && (!(actualType instanceof STRING)))
-      error(pos, "expected integer or string");
+      error(pos, "Expected Integer or String");
     return et.exp;
   }
 
@@ -512,17 +513,17 @@ public class Semant
     if (formal == null)
     {
       if (args != null)
-        error(args.head.pos, "too many args");
+        error(args.head.pos, "Too Many args");
       return;
     }
     if (args == null)
     {
-      error(epos, "not enough args");
+      error(epos, "Not Enough args");
       return;
     }
     ExpTy e = transExp(args.head);
     if (!e.ty.coerceTo(formal.fieldType))
-      error(args.head.pos, "arg type mismatch");
+      error(args.head.pos, "Arg Type Mismatch");
     transArgs(epos, formal.tail, args.tail);
   }
 
@@ -532,9 +533,9 @@ public class Semant
     
     NAME name = (NAME)this.env.tenv.get(f.typ);
     if (name == null)
-      error(f.pos, "undefined type: " + f.typ);
+      error(f.pos, "Undefined Type: " + f.typ);
     if (hash.put(f.name, f.name) != null)
-      error(f.pos, "function parameter/record field redeclared: " + f.name);
+      error(f.pos, "Function Parameter/Record Field Redeclared: " + f.name);
     return new RECORD(f.name, name, transTypeFields(hash, f.tail));
   }
 
@@ -543,20 +544,20 @@ public class Semant
     if (f == null)
     {
       if (exp != null)
-        error(exp.pos, "too many expressions");
+        error(exp.pos, "Too Many Expressions");
       return;
     }
     if (exp == null)
     {
-      error(epos, "missing expression for " + f.fieldName);
+      error(epos, "Missing Expression for " + f.fieldName);
       return;
     }
     
     ExpTy e = transExp(exp.init);
     if (exp.name != f.fieldName)
-      error(exp.pos, "field name mismatch");
+      error(exp.pos, "Field Name Mismatch");
     if (!e.ty.coerceTo(f.fieldType))
-      error(exp.pos, "field type mismatch");
+      error(exp.pos, "Field Type Mismatch");
     transFields(epos, f.tail, exp.tail);
   }
 }
